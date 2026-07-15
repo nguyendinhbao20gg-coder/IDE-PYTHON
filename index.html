@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyIDE Pro - Python Web IDE</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/solarized.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/python-hint.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-primary: #1e1e2e;
+            --bg-secondary: #181825;
+            --bg-tertiary: #11111b;
+            --text-primary: #cdd6f4;
+            --text-secondary: #a6adc8;
+            --accent: #cba6f7;
+            --accent-hover: #b4befe;
+            --border: #313244;
+            --output-bg: #11111b;
+            --tab-active: #cba6f7;
+            --tab-inactive: #6c7086;
+            --button-bg: #cba6f7;
+            --button-text: #1e1e2e;
+            --editor-bg: #1e1e2e;
+            --header-bg: #181825;
+            --surface: #313244;
+            --success: #a6e3a1;
+            --error: #f38ba8;
+            --warning: #f9e2af;
+            --info: #89b4fa;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #eff1f5;
+            --bg-secondary: #e6e9ef;
+            --bg-tertiary: #dce0e8;
+            --text-primary: #4c4f69;
+            --text-secondary: #5c5f77;
+            --accent: #8839ef;
+            --accent-hover: #7287fd;
+            --border: #ccd0da;
+            --output-bg: #dce0e8;
+            --tab-active: #8839ef;
+            --tab-inactive: #9ca0b0;
+            --button-bg: #8839ef;
+            --button-text: #eff1f5;
+            --editor-bg: #eff1f5;
+            --header-bg: #e6e9ef;
+            --surface: #ccd0da;
+        }
+
+        [data-theme="cream"] {
+            --bg-primary: #faf3e0;
+            --bg-secondary: #f5ebd0;
+            --bg-tertiary: #efe0c0;
+            --text-primary: #5c4033;
+            --text-secondary: #7a5c4f;
+            --accent: #8b6914;
+            --accent-hover: #a07828;
+            --border: #d4c5a9;
+            --output-bg: #efe0c0;
+            --tab-active: #8b6914;
+            --tab-inactive: #b8a080;
+            --button-bg: #8b6914;
+            --button-text: #faf3e0;
+            --editor-bg: #faf3e0;
+            --header-bg: #f5ebd0;
+            --surface: #d4c5a9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            color: var(--accent);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .modal input:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--button-bg);
+            color: var(--button-text);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-premium {
+            background: linear-gradient(135deg, #f9e2af, #fab387);
+            color: #1e1e2e;
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(249, 226, 175, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(249, 226, 175, 0.8); }
+        }
+
+        .qr-container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .qr-container canvas {
+            border: 10px solid white;
+            border-radius: 16px;
+            margin: 20px auto;
+        }
+
+        .qr-url {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            color: var(--info);
+        }
+
+        .premium-status {
+            text-align: center;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .premium-status.waiting {
+            color: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+
+        .premium-status.success {
+            color: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header {
+            background: var(--header-bg);
+            border-bottom: 2px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, #f9e2af, #fab387);
+            color: #1e1e2e;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 700;
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-tertiary);
+            padding: 3px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .theme-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .theme-btn.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(203, 166, 247, 0.4);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 2px;
+            background: var(--border);
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            min-width: 300px;
+        }
+
+        .panel-header {
+            background: var(--bg-secondary);
+            padding: 6px 12px;
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--tab-inactive);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .tab-btn.active {
+            color: var(--tab-active);
+            background: var(--bg-primary);
+            border-bottom: 2px solid var(--tab-active);
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        .editor-container {
+            flex: 1;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 14px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--editor-bg) !important;
+        }
+
+        .output-container {
+            flex: 1;
+            background: var(--output-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 8px;
+            overflow: auto;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .output-container .error { color: var(--error); }
+        .output-container .success { color: var(--success); }
+        .output-container .warning { color: var(--warning); }
+        .output-container .info { color: var(--info); }
+
+        .pygame-canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--output-bg);
+            margin: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .status-bar {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        /* AI Assistant */
+        .ai-assistant-btn {
+            position: fixed;
+            bottom: 60px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #cba6f7, #f5c2e7);
+            color: #1e1e2e;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(203, 166, 247, 0.4);
+            z-index: 100;
+            transition: all 0.3s;
+        }
+
+        .ai-chat {
+            position: fixed;
+            bottom: 125px;
+            right: 20px;
+            width: 380px;
+            height: 500px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            display: none;
+            flex-direction: column;
+            z-index: 99;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .ai-chat.active {
+            display: flex;
+        }
+
+        .ai-chat-header {
+            padding: 15px;
+            background: var(--accent);
+            color: var(--button-text);
+            border-radius: 14px 14px 0 0;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .ai-message {
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 12px;
+            max-width: 85%;
+            line-height: 1.4;
+        }
+
+        .ai-message.user {
+            background: var(--accent);
+            color: var(--button-text);
+            margin-left: auto;
+        }
+
+        .ai-message.assistant {
+            background: var(--surface);
+            color: var(--text-primary);
+        }
+
+        .ai-message code {
+            background: rgba(0,0,0,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .ai-message pre {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .ai-chat-input {
+            display: flex;
+            padding: 12px;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .ai-chat-input input {
+            flex: 1;
+            padding: 10px 15px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-primary);
+            outline: none;
+            font-family: inherit;
+        }
+
+        .ai-chat-input button {
+            padding: 10px 20px;
+            background: var(--accent);
+            color: var(--button-text);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .ai-chat {
+                width: 90vw;
+                right: 5vw;
+                height: 60vh;
+                bottom: 80px;
+            }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <h2 id="modalTitle">🔐 Đăng nhập</h2>
+            <input type="text" id="authUsername" placeholder="Tên đăng nhập">
+            <input type="password" id="authPassword" placeholder="Mật khẩu">
+            <div id="registerFields" style="display:none;">
+                <input type="email" id="authEmail" placeholder="Email">
+                <input type="password" id="authConfirmPassword" placeholder="Xác nhận mật khẩu">
+            </div>
+            <button class="btn btn-primary" onclick="handleAuth()" id="authSubmitBtn" style="width:100%;margin:8px 0;">Đăng nhập</button>
+            <button class="btn btn-outline" onclick="closeModal()" style="width:100%;">Đóng</button>
+            <div style="text-align:center;margin-top:12px;color:var(--text-secondary);cursor:pointer;" id="switchAuth" onclick="toggleAuthMode()">
+                Chưa có tài khoản? <strong>Đăng ký</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium QR Modal -->
+    <div class="modal-overlay" id="premiumModal">
+        <div class="modal">
+            <h2>⭐ Nâng cấp Premium</h2>
+            <div class="qr-container">
+                <p style="margin-bottom:15px;">Quét mã QR bằng điện thoại để mở web xác nhận:</p>
+                <div id="qrcode"></div>
+                <div class="qr-url" id="qrUrl"></div>
+                <div class="premium-status waiting" id="premiumStatus">
+                    ⏳ Đang chờ xác nhận từ điện thoại...
+                </div>
+                <p style="font-size:0.8em;color:var(--text-secondary);margin-top:10px;">
+                    📱 Link điện thoại: <span id="activationLink" style="word-break:break-all;"></span>
+                </p>
+            </div>
+            <button class="btn btn-outline" onclick="closePremiumModal()" style="width:100%;">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">
+                🐍 PyIDE <span class="premium-badge" id="planBadge" style="display:none;">PRO</span>
+            </div>
+            <div class="theme-selector">
+                <button class="theme-btn active" data-theme="dark" style="background:linear-gradient(135deg,#1e1e2e,#313244)" title="Tím đen"></button>
+                <button class="theme-btn" data-theme="light" style="background:linear-gradient(135deg,#eff1f5,#ccd0da)" title="Trắng"></button>
+                <button class="theme-btn" data-theme="cream" style="background:linear-gradient(135deg,#faf3e0,#d4c5a9)" title="Kem"></button>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="downloadProject()">📥 Tải file</button>
+            <button class="btn btn-outline" onclick="document.getElementById('fileUpload').click()">📤 Mở file</button>
+            <input type="file" id="fileUpload" style="display:none" accept=".py,.txt,.zip" onchange="handleFileUpload(event)">
+            <button class="btn btn-primary" onclick="runCode()" id="btnRun" disabled>▶️ Chạy</button>
+            <div id="userSection" style="display:none;align-items:center;gap:8px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--button-text);" id="userAvatar"></div>
+                <div>
+                    <div style="font-weight:600;font-size:0.85em;color:var(--accent);" id="userNameDisplay"></div>
+                    <div style="font-size:0.75em;color:var(--text-secondary);" id="userPlanDisplay">Free</div>
+                </div>
+                <button class="btn btn-outline" onclick="logout()" style="font-size:0.75em;padding:4px 10px;">Đăng xuất</button>
+            </div>
+            <button class="btn btn-premium" id="premiumBtn" onclick="showPremiumModal()">⭐ Premium</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <div class="panel" style="flex:3;">
+            <div class="panel-header">
+                <button class="tab-btn active" data-tab="python">📝 Python</button>
+                <button class="tab-btn" data-tab="pygame">🎮 Pygame</button>
+            </div>
+            <div class="tab-content active" id="tab-python">
+                <div class="editor-container" id="pythonEditor"></div>
+            </div>
+            <div class="tab-content" id="tab-pygame">
+                <div class="editor-container" id="pygameEditor"></div>
+            </div>
+        </div>
+        <div class="panel" style="flex:2;">
+            <div class="panel-header">
+                <button class="tab-btn active" data-output="console">💻 Output</button>
+                <button class="tab-btn" data-output="pygame-canvas">🖼️ Canvas</button>
+            </div>
+            <div class="tab-content active" id="output-console">
+                <div class="output-container" id="outputConsole">
+                    <span class="info">Sẵn sàng. Python đang tải...</span>
+                </div>
+            </div>
+            <div class="tab-content" id="output-pygame-canvas">
+                <div class="pygame-canvas-container">
+                    <canvas id="pygameCanvas" width="600" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span><span class="status-dot"></span> <span id="statusText">Đang khởi tạo...</span></span>
+        <span id="pythonVersion"></span>
+        <span id="cursorPosition">Ln 1, Col 1</span>
+    </div>
+
+    <!-- AI Assistant -->
+    <button class="ai-assistant-btn" id="aiAssistantBtn" onclick="toggleAIChat()" title="AI Assistant (Premium)">🤖</button>
+    <div class="ai-chat" id="aiChat">
+        <div class="ai-chat-header">
+            🤖 AI Assistant (Premium)
+            <button onclick="toggleAIChat()" style="background:none;border:none;color:var(--button-text);cursor:pointer;font-size:1.2em;">✕</button>
+        </div>
+        <div class="ai-chat-messages" id="aiMessages">
+            <div class="ai-message assistant">
+                👋 Xin chào! Tôi là AI Assistant. Hãy hỏi tôi về Python!
+            </div>
+        </div>
+        <div class="ai-chat-input">
+            <input type="text" id="aiInput" placeholder="Hỏi về Python..." onkeypress="if(event.key==='Enter')sendAIMessage()">
+            <button onclick="sendAIMessage()">Gửi</button>
+        </div>
+    </div>
+
+    <script>
+        // ============ CONFIGURATION ============
+        // 🔧 THAY ĐỔI URL NÀY thành URL web xác nhận Premium của bạn
+        const PREMIUM_ACTIVATION_URL = window.location.origin + '/premium-activation.html';
+        // =======================================
+
+        // Global state
+        let pyodide = null;
+        let pyodideReady = false;
+        let currentUser = null;
+        let isPremium = false;
+        let pythonEditor, pygameEditor;
+        let currentEditorTab = 'python';
+        let currentOutputTab = 'console';
+        let activationSessionId = null;
+        let activationCheckInterval = null;
+
+        // Initialize CodeMirror
+        function initEditors() {
+            const config = {
+                mode: 'python',
+                theme: 'monokai',
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                styleActiveLine: true,
+                indentUnit: 4,
+                tabSize: 4,
+                extraKeys: {
+                    "Ctrl-Space": "autocomplete",
+                    "Tab": (cm) => cm.replaceSelection("    "),
+                }
+            };
+
+            pythonEditor = CodeMirror(document.getElementById('pythonEditor'), {
+                ...config,
+                value: localStorage.getItem('pyide-python-code') || '# Python Code\nprint("Hello, World!")\n\nfor i in range(5):\n    print(f"Line {i+1}")'
+            });
+
+            pygameEditor = CodeMirror(document.getElementById('pygameEditor'), {
+                ...config,
+                value: localStorage.getItem('pyide-pygame-code') || '# Pygame Code (mocked)\nimport sys\nprint(f"Python {sys.version}")'
+            });
+
+            [pythonEditor, pygameEditor].forEach(editor => {
+                editor.on('cursorActivity', () => {
+                    const cursor = editor.getCursor();
+                    document.getElementById('cursorPosition').textContent = 
+                        `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
+                });
+            });
+        }
+
+        // Initialize Pyodide
+        async function initPyodide() {
+            try {
+                document.getElementById('statusText').textContent = 'Đang tải Python...';
+                document.getElementById('outputConsole').innerHTML = 
+                    '<span class="info">⏳ Đang tải môi trường Python...</span>';
+
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+                });
+
+                await pyodide.loadPackage(['micropip', 'numpy', 'pillow']);
+
+                await pyodide.runPythonAsync(`
+import sys
+import io
+
+class OutputCapture:
+    def __init__(self):
+        self.buffer = io.StringIO()
+    
+    def start(self):
+        self.buffer = io.StringIO()
+        sys.stdout = self.buffer
+        sys.stderr = self.buffer
+    
+    def stop(self):
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+    
+    def get_output(self):
+        return self.buffer.getvalue()
+
+output_capture = OutputCapture()
+
+# Mock pygame
+class MockPygame:
+    class display:
+        @staticmethod
+        def set_mode(*args, **kwargs):
+            print("[Pygame] Display mode set (mocked)")
+    class draw:
+        @staticmethod
+        def rect(*args, **kwargs):
+            print("[Pygame] Rectangle drawn (mocked)")
+        @staticmethod
+        def circle(*args, **kwargs):
+            print("[Pygame] Circle drawn (mocked)")
+    class event:
+        @staticmethod
+        def get():
+            return []
+    QUIT = 0
+    KEYDOWN = 1
+
+sys.modules['pygame'] = MockPygame()
+                `);
+
+                pyodideReady = true;
+                document.getElementById('btnRun').disabled = false;
+                document.getElementById('statusText').textContent = 'Python sẵn sàng';
+                document.getElementById('pythonVersion').textContent = 
+                    `Python ${pyodide.runPython('import sys; sys.version.split()[0]')}`;
+                document.getElementById('outputConsole').innerHTML = 
+                    '<span class="success">✅ Python đã sẵn sàng! Nhấn "Chạy" để thực thi.</span>';
+
+            } catch (error) {
+                document.getElementById('outputConsole').innerHTML = 
+                    `<span class="error">❌ Lỗi: ${error.message}</span>`;
+            }
+        }
+
+        // Run code
+        async function runCode() {
+            if (!pyodideReady) {
+                alert('Python chưa sẵn sàng!');
+                return;
+            }
+
+            const btnRun = document.getElementById('btnRun');
+            const outputConsole = document.getElementById('outputConsole');
+            
+            btnRun.disabled = true;
+            btnRun.innerHTML = '⏳ Đang chạy...';
+            document.getElementById('statusText').textContent = 'Đang thực thi...';
+
+            let code = currentEditorTab === 'python' ? 
+                pythonEditor.getValue() : pygameEditor.getValue();
+
+            if (!code.trim()) {
+                outputConsole.innerHTML = '<span class="warning">⚠️ Không có code.</span>';
+                btnRun.disabled = false;
+                btnRun.innerHTML = '▶️ Chạy';
+                return;
+            }
+
+            try {
+                await pyodide.runPythonAsync('output_capture.start()');
+                
+                let hasError = false;
+                try {
+                    await pyodide.runPythonAsync(code);
+                } catch (pythonError) {
+                    hasError = true;
+                    outputConsole.innerHTML = 
+                        `<span class="error">❌ ${pythonError.message.replace(/</g, '&lt;').replace(/\n/g, '<br>')}</span>`;
+                    btnRun.disabled = false;
+                    btnRun.innerHTML = '▶️ Chạy';
+                    document.getElementById('statusText').textContent = 'Lỗi';
+                    await pyodide.runPythonAsync('output_capture.stop()');
+                    return;
+                }
+
+                await pyodide.runPythonAsync('output_capture.stop()');
+                const output = await pyodide.runPythonAsync('output_capture.get_output()');
+
+                const formattedOutput = output
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n/g, '<br>');
+
+                outputConsole.innerHTML = formattedOutput ? 
+                    `<span class="success">${formattedOutput}</span>` :
+                    '<span class="success">✅ Thực thi thành công.</span>';
+
+                document.getElementById('statusText').textContent = 'Thành công';
+                switchOutputTab('console');
+
+            } catch (error) {
+                outputConsole.innerHTML = 
+                    `<span class="error">❌ ${error.message.replace(/</g, '&lt;')}</span>`;
+            } finally {
+                btnRun.disabled = false;
+                btnRun.innerHTML = '▶️ Chạy';
+                if (currentEditorTab === 'python') {
+                    localStorage.setItem('pyide-python-code', pythonEditor.getValue());
+                } else {
+                    localStorage.setItem('pyide-pygame-code', pygameEditor.getValue());
+                }
+            }
+        }
+
+        // Download project
+        function downloadProject() {
+            const zip = new JSZip();
+            zip.file("python_code.py", pythonEditor.getValue());
+            zip.file("pygame_code.py", pygameEditor.getValue());
+            zip.generateAsync({type: "blob"}).then(content => {
+                saveAs(content, "pyide_project.zip");
+            });
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (currentEditorTab === 'python') {
+                    pythonEditor.setValue(e.target.result);
+                } else {
+                    pygameEditor.setValue(e.target.result);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // Authentication
+        let isLoginMode = true;
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('modalTitle').textContent = isLoginMode ? '🔐 Đăng nhập' : '📝 Đăng ký';
+            document.getElementById('authSubmitBtn').textContent = isLoginMode ? 'Đăng nhập' : 'Đăng ký';
+            document.getElementById('registerFields').style.display = isLoginMode ? 'none' : 'block';
+            document.getElementById('switchAuth').innerHTML = isLoginMode ? 
+                'Chưa có tài khoản? <strong>Đăng ký</strong>' : 
+                'Đã có tài khoản? <strong>Đăng nhập</strong>';
+        }
+
+        function handleAuth() {
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value;
+
+            if (!username || !password) {
+                alert('Vui lòng nhập đầy đủ!');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('pyide-users') || '{}');
+
+            if (!isLoginMode) {
+                const email = document.getElementById('authEmail').value;
+                const confirmPassword = document.getElementById('authConfirmPassword').value;
+                
+                if (!email || password !== confirmPassword) {
+                    alert('Thông tin không hợp lệ!');
+                    return;
+                }
+                if (users[username]) {
+                    alert('Tên đăng nhập đã tồn tại!');
+                    return;
+                }
+                users[username] = { password, email, plan: 'free' };
+                localStorage.setItem('pyide-users', JSON.stringify(users));
+                alert('Đăng ký thành công!');
+                toggleAuthMode();
+                return;
+            }
+
+            if (!users[username] || users[username].password !== password) {
+                alert('Sai thông tin đăng nhập!');
+                return;
+            }
+
+            currentUser = { username, ...users[username] };
+            isPremium = currentUser.plan === 'premium';
+            updateUserUI();
+            closeModal();
+        }
+
+        function logout() {
+            currentUser = null;
+            isPremium = false;
+            updateUserUI();
+        }
+
+        function updateUserUI() {
+            const userSection = document.getElementById('userSection');
+            const premiumBtn = document.getElementById('premiumBtn');
+            const planBadge = document.getElementById('planBadge');
+
+            if (currentUser) {
+                userSection.style.display = 'flex';
+                document.getElementById('userAvatar').textContent = currentUser.username[0].toUpperCase();
+                document.getElementById('userNameDisplay').textContent = currentUser.username;
+                document.getElementById('userPlanDisplay').textContent = isPremium ? 'Premium ⭐' : 'Free';
+                premiumBtn.style.display = isPremium ? 'none' : 'inline-flex';
+                planBadge.style.display = isPremium ? 'inline' : 'none';
+            } else {
+                userSection.style.display = 'none';
+                premiumBtn.style.display = 'inline-flex';
+                planBadge.style.display = 'none';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('loginModal').classList.remove('active');
+        }
+
+        // ============ PREMIUM QR CODE ============
+        function showPremiumModal() {
+            if (!currentUser) {
+                alert('Vui lòng đăng nhập trước!');
+                document.getElementById('loginModal').classList.add('active');
+                return;
+            }
+
+            document.getElementById('premiumModal').classList.add('active');
+            
+            // Tạo session ID duy nhất
+            activationSessionId = 'PREMIUM-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            // Tạo URL cho web xác nhận (web khác trên điện thoại)
+            const activationUrl = PREMIUM_ACTIVATION_URL + 
+                '?session=' + encodeURIComponent(activationSessionId) + 
+                '&user=' + encodeURIComponent(currentUser.username) +
+                '&return_url=' + encodeURIComponent(window.location.href);
+            
+            // Tạo QR Code
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById('qrcode'), {
+                text: activationUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+            });
+            
+            document.getElementById('qrUrl').textContent = activationUrl;
+            document.getElementById('activationLink').textContent = activationUrl;
+            document.getElementById('premiumStatus').textContent = '⏳ Đang chờ xác nhận từ điện thoại...';
+            document.getElementById('premiumStatus').className = 'premium-status waiting';
+
+            // Lưu session vào localStorage để web khác có thể đọc
+            const pendingActivations = JSON.parse(localStorage.getItem('pyide-pending-activations') || '{}');
+            pendingActivations[activationSessionId] = {
+                username: currentUser.username,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('pyide-pending-activations', JSON.stringify(pendingActivations));
+
+            // Kiểm tra mỗi 3 giây
+            if (activationCheckInterval) clearInterval(activationCheckInterval);
+            activationCheckInterval = setInterval(() => {
+                checkPremiumActivation(activationSessionId);
+            }, 3000);
+        }
+
+        function checkPremiumActivation(sessionId) {
+            const completedActivations = JSON.parse(localStorage.getItem('pyide-completed-activations') || '{}');
+            
+            if (completedActivations[sessionId]) {
+                const activatedUser = completedActivations[sessionId];
+                
+                // Cập nhật user thành premium
+                const users = JSON.parse(localStorage.getItem('pyide-users') || '{}');
+                if (users[activatedUser]) {
+                    users[activatedUser].plan = 'premium';
+                    localStorage.setItem('pyide-users', JSON.stringify(users));
+                }
+                
+                currentUser.plan = 'premium';
+                isPremium = true;
+                updateUserUI();
+                
+                document.getElementById('premiumStatus').textContent = '✅ Premium Successful!';
+                document.getElementById('premiumStatus').className = 'premium-status success';
+                
+                // Dọn dẹp
+                delete completedActivations[sessionId];
+                localStorage.setItem('pyide-completed-activations', JSON.stringify(completedActivations));
+                
+                if (activationCheckInterval) {
+                    clearInterval(activationCheckInterval);
+                    activationCheckInterval = null;
+                }
+                
+                setTimeout(() => {
+                    document.getElementById('premiumModal').classList.remove('active');
+                    alert('🎉 Premium đã được kích hoạt!');
+                }, 2000);
+            }
+        }
+
+        function closePremiumModal() {
+            document.getElementById('premiumModal').classList.remove('active');
+            if (activationCheckInterval) {
+                clearInterval(activationCheckInterval);
+                activationCheckInterval = null;
+            }
+        }
+
+        // AI Assistant (Premium only)
+        function toggleAIChat() {
+            if (!isPremium) {
+                alert('🤖 AI Assistant là tính năng Premium!');
+                showPremiumModal();
+                return;
+            }
+            document.getElementById('aiChat').classList.toggle('active');
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const messagesContainer = document.getElementById('aiMessages');
+            messagesContainer.innerHTML += 
+                `<div class="ai-message user">${escapeHtml(message)}</div>`;
+            input.value = '';
+
+            setTimeout(() => {
+                const response = generateAIResponse(message);
+                messagesContainer.innerHTML += 
+                    `<div class="ai-message assistant">${response}</div>`;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 500);
+        }
+
+        function generateAIResponse(message) {
+            const lowerMsg = message.toLowerCase();
+            
+            if (lowerMsg.includes('print')) {
+                return `<code>print()</code> dùng để in ra màn hình.<br><pre><code>print("Hello World")\nprint(f"1 + 1 = {1+1}")</code></pre>`;
+            }
+            if (lowerMsg.includes('if') || lowerMsg.includes('else')) {
+                return `Cấu trúc điều kiện:<br><pre><code>if condition:\n    print("True")\nelse:\n    print("False")</code></pre>`;
+            }
+            if (lowerMsg.includes('for') || lowerMsg.includes('loop')) {
+                return `Vòng lặp for:<br><pre><code>for i in range(5):\n    print(i)\n\n# List comprehension\nsquares = [x**2 for x in range(10)]</code></pre>`;
+            }
+            if (lowerMsg.includes('function') || lowerMsg.includes('def')) {
+                return `Định nghĩa hàm:<br><pre><code>def greet(name):\n    return f"Hello {name}!"\n\n# Lambda\nsquare = lambda x: x**2</code></pre>`;
+            }
+            
+            return `Tôi có thể giúp bạn với Python! Hãy hỏi về: print, if/else, for loop, function, list, dictionary, class...`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Tab switching
+        function switchEditorTab(tabName) {
+            currentEditorTab = tabName;
+            document.querySelectorAll('#tab-python, #tab-pygame').forEach(el => {
+                el.classList.toggle('active', el.id === `tab-${tabName}`);
+            });
+            document.querySelectorAll('.panel:first-child .tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+        }
+
+        function switchOutputTab(tabName) {
+            currentOutputTab = tabName;
+            document.querySelectorAll('#output-console, #output-pygame-canvas').forEach(el => {
+                el.classList.toggle('active', el.id === `output-${tabName}`);
+            });
+            document.querySelectorAll('.panel:last-child .tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.output === tabName);
+            });
+        }
+
+        // Theme
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === themeName);
+            });
+            localStorage.setItem('pyide-theme', themeName);
+            const cmThemes = { 'dark': 'monokai', 'light': 'eclipse', 'cream': 'solarized' };
+            pythonEditor.setOption('theme', cmThemes[themeName] || 'monokai');
+            pygameEditor.setOption('theme', cmThemes[themeName] || 'monokai');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initEditors();
+            initPyodide();
+
+            document.querySelectorAll('.panel:first-child .tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchEditorTab(btn.dataset.tab));
+            });
+            document.querySelectorAll('.panel:last-child .tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchOutputTab(btn.dataset.output));
+            });
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+            });
+
+            const savedTheme = localStorage.getItem('pyide-theme') || 'dark';
+            setTheme(savedTheme);
+
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCode();
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    downloadProject();
+                }
+            });
+
+            updateUserUI();
+        });
+    </script>
+</body>
+</html>

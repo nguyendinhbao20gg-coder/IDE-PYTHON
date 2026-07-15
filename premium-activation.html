@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kích hoạt Premium - PyIDE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e, #313244);
+            color: #cdd6f4;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #181825;
+            border: 2px solid #313244;
+            border-radius: 24px;
+            padding: 40px 30px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .logo {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #cba6f7;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #a6adc8;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: #11111b;
+            border: 1px solid #313244;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #313244;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #a6adc8;
+            font-size: 0.85em;
+        }
+
+        .info-value {
+            color: #cdd6f4;
+            font-weight: 600;
+            font-size: 0.85em;
+            word-break: break-all;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .status.waiting {
+            background: rgba(249, 226, 175, 0.1);
+            color: #f9e2af;
+            border: 1px solid #f9e2af;
+        }
+
+        .status.success {
+            background: rgba(166, 227, 161, 0.1);
+            color: #a6e3a1;
+            border: 1px solid #a6e3a1;
+        }
+
+        .status.error {
+            background: rgba(243, 139, 168, 0.1);
+            color: #f38ba8;
+            border: 1px solid #f38ba8;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-confirm {
+            background: linear-gradient(135deg, #cba6f7, #f5c2e7);
+            color: #1e1e2e;
+            box-shadow: 0 8px 25px rgba(203, 166, 247, 0.3);
+        }
+
+        .btn-confirm:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(203, 166, 247, 0.5);
+        }
+
+        .btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: #cdd6f4;
+            border: 2px solid #313244;
+        }
+
+        .btn-cancel:hover {
+            background: #313244;
+        }
+
+        .btn-back {
+            background: #cba6f7;
+            color: #1e1e2e;
+            margin-top: 20px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .premium-icon {
+            font-size: 4em;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🐍</div>
+        <h1>PyIDE Premium</h1>
+        <p class="subtitle">Kích hoạt tài khoản Premium</p>
+
+        <div id="loadingSection">
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">👤 Tài khoản:</span>
+                    <span class="info-value" id="displayUser">Đang tải...</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🔑 Session:</span>
+                    <span class="info-value" id="displaySession">Đang tải...</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">💻 Quay lại:</span>
+                    <span class="info-value" id="displayReturnUrl" style="font-size:0.7em;">Đang tải...</span>
+                </div>
+            </div>
+
+            <div id="activationStatus" class="status waiting">
+                <span class="loading-spinner"></span> Đang chờ xác nhận...
+            </div>
+
+            <button class="btn btn-confirm" id="btnConfirm" onclick="confirmActivation()">
+                ✅ Xác nhận Premium
+            </button>
+            <button class="btn btn-cancel" onclick="cancelActivation()">
+                ❌ Hủy
+            </button>
+        </div>
+
+        <div id="successSection" style="display:none;">
+            <div class="premium-icon">⭐</div>
+            <div class="status success" style="margin:20px 0;">
+                ✅ Premium Successful!
+            </div>
+            <p style="color:#a6adc8;margin:15px 0;">
+                Tài khoản <strong id="successUser"></strong> đã được nâng cấp lên Premium!
+            </p>
+            <p style="color:#f9e2af;font-size:0.85em;">
+                Bạn có thể quay lại web IDE để sử dụng các tính năng Premium.
+            </p>
+            <button class="btn btn-back" onclick="goBackToIDE()">
+                🔙 Quay lại IDE
+            </button>
+        </div>
+
+        <div id="errorSection" style="display:none;">
+            <div class="status error">
+                ❌ Không thể kích hoạt
+            </div>
+            <p style="color:#a6adc8;margin:15px 0;" id="errorMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        let username = null;
+        let returnUrl = null;
+
+        // Đọc tham số từ URL
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            sessionId = params.get('session');
+            username = params.get('user');
+            returnUrl = params.get('return_url');
+        }
+
+        // Hiển thị thông tin
+        function displayInfo() {
+            document.getElementById('displayUser').textContent = username || 'Không xác định';
+            document.getElementById('displaySession').textContent = sessionId ? 
+                sessionId.substring(0, 20) + '...' : 'Không xác định';
+            document.getElementById('displayReturnUrl').textContent = returnUrl || 'Không xác định';
+
+            if (!sessionId || !username) {
+                document.getElementById('activationStatus').className = 'status error';
+                document.getElementById('activationStatus').innerHTML = '❌ Thiếu thông tin kích hoạt';
+                document.getElementById('btnConfirm').disabled = true;
+                document.getElementById('btnConfirm').textContent = '⚠️ Không thể kích hoạt';
+            }
+        }
+
+        // Xác nhận kích hoạt Premium
+        function confirmActivation() {
+            if (!sessionId || !username) {
+                alert('Thiếu thông tin! Vui lòng quét lại mã QR.');
+                return;
+            }
+
+            // Lưu thông tin kích hoạt vào localStorage
+            // (Web IDE chính sẽ đọc thông tin này)
+            const completedActivations = JSON.parse(
+                localStorage.getItem('pyide-completed-activations') || '{}'
+            );
+            completedActivations[sessionId] = username;
+            localStorage.setItem('pyide-completed-activations', JSON.stringify(completedActivations));
+
+            // Hiển thị thành công
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('successSection').style.display = 'block';
+            document.getElementById('successUser').textContent = username;
+
+            // Rung điện thoại (nếu hỗ trợ)
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+        }
+
+        // Hủy kích hoạt
+        function cancelActivation() {
+            if (confirm('Bạn có chắc muốn hủy kích hoạt Premium?')) {
+                document.getElementById('activationStatus').className = 'status error';
+                document.getElementById('activationStatus').innerHTML = '❌ Đã hủy kích hoạt';
+                document.getElementById('btnConfirm').disabled = true;
+                
+                setTimeout(() => {
+                    window.close();
+                }, 2000);
+            }
+        }
+
+        // Quay lại IDE
+        function goBackToIDE() {
+            if (returnUrl) {
+                window.location.href = returnUrl + '?premium_activated=true&user=' + 
+                    encodeURIComponent(username);
+            } else {
+                alert('Không tìm thấy URL quay lại. Hãy mở lại web IDE trên máy tính.');
+            }
+        }
+
+        // Khởi tạo
+        document.addEventListener('DOMContentLoaded', () => {
+            getUrlParams();
+            displayInfo();
+        });
+    </script>
+</body>
+</html>
